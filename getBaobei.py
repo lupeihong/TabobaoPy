@@ -91,7 +91,26 @@ def downImg(imgurl,filename,dir):
     #     print ("cannot create thumbnail")
 
 
-def getCoverImg(soup):
+#返回原图列表，用于过滤封面里的宝贝图
+def getBaobeiImg(soup):
+    baobeiImgTagList = soup.findAll("div",attrs={"class":"unit-detail-spec-operator active","class":"unit-detail-spec-operator"})
+    imgOriImgList = []
+    for tag in baobeiImgTagList:
+        if "data-unit-config" in tag.attrs and "data-imgs" in tag.attrs:
+            baobeiNameInfo = tag['data-unit-config']
+            imgInfo = tag['data-imgs']
+            jsonName = json.loads(baobeiNameInfo)
+            jsonImg = json.loads(imgInfo)
+            name = jsonName['name'] #宝贝名
+            imgURL = jsonImg['preview'] #大图
+            imgOriUrl = jsonImg['original'] #原图
+            imgOriImgList.append(imgOriUrl)
+            print("{}：{}".format(name,imgURL))
+            downImg(imgURL,name,"baobei")
+    return imgOriImgList
+
+
+def getCoverImg(soup,outList):
     coverImgTagList = soup.findAll("li",attrs={"class":"tab-trigger"})
     i = 0
     for tag in coverImgTagList:
@@ -100,7 +119,9 @@ def getCoverImg(soup):
             imgInfo = tag['data-imgs']
             jsonImg = json.loads(imgInfo)
             imgURL = jsonImg['preview']
-            imgURL = imgURL.replace("https", "http")
+            imgOriUrl = jsonImg['original'] #原图
+            if imgOriUrl in outList:
+                continue
             print("封面{}：{}".format(i,imgURL))
             downImg(imgURL,i,"cover")
             i = i+1
@@ -117,8 +138,12 @@ def getDescImg(soup):
         downImg(imgUrl,i,"desc")
         i = i+1
         
+
+
+
 def main():
-    getCoverImg(soup)
+    imgOriImgList = getBaobeiImg(soup)
+    getCoverImg(soup,imgOriImgList)
     getDescImg(soup)
 
 if __name__ == "__main__":

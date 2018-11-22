@@ -6,15 +6,15 @@ import os
 from bs4 import BeautifulSoup
 from PIL import Image
 from resizeimage import resizeimage
-from http.cookiejar import CookieJar
+# from http.cookiejar import CookieJar
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
+from selenium.webdriver.common.by import By
+# import time
 
-url = "https://detail.1688.com/offer/527531660387.html?spm=a2615.7691456.newlist.28.6a203b0a5Icc9G"
-htmlfile = "/Users/luph/Documents/github/TabobaoPy/baobei.html"
-outPath = "/Users/luph/Documents/sizetj/" #输出目录
+url = "https://detail.1688.com/offer/556263839475.html?spm=a2615.7691456.newlist.11.4f7225f5cD6kRB"
+outPath = "/Users/luph/Documents/baobei" #输出目录
 
 # context = ssl._create_unverified_context()
 
@@ -62,18 +62,27 @@ soup = BeautifulSoup(html,"lxml")
 
 titleTag = soup.find("h1",attrs={"class":"d-title"})
 print(titleTag.string)
-workPath = outPath + titleTag.string
+workPath = os.path.join(outPath,titleTag.string)
 
+#清洗url
+def clearUrl(imgurl):
+    imghttp = imgurl.replace("https","http")
+    if not imgurl.startswith("http") :
+        imghttp = "http:" + imgurl
+    return imghttp
 
-
-def downImg(imgurl,filename):
-    coverImgDir = os.path.join(workPath,"cover")
+def downImg(imgurl,filename,dir):
+    coverImgDir = os.path.join(workPath,dir)
     if not os.path.exists(coverImgDir):
         os.makedirs(coverImgDir)
     
     file_suffix = os.path.splitext(imgurl)[1]      #获得图片后缀
     filename = os.path.join(coverImgDir,"{}{}".format(filename,file_suffix))
-    request.urlretrieve(imgurl,filename=filename)
+    imghttp = clearUrl(imgurl)
+    try:
+        request.urlretrieve(imghttp,filename=filename)
+    except:
+        print("下载失败:{}",imgurl)
     # try:
     #     image = Image.open(filename)
     #     cover = resizeimage.resize_cover(image, [460, 460])
@@ -92,14 +101,30 @@ def getCoverImg(soup):
             jsonImg = json.loads(imgInfo)
             imgURL = jsonImg['preview']
             imgURL = imgURL.replace("https", "http")
-            print(imgURL)
-            downImg(imgURL,i)
+            print("封面{}：{}".format(i,imgURL))
+            downImg(imgURL,i,"cover")
             i = i+1
 
 
+def getDescImg(soup):
+    descImgTag = soup.find("div",attrs={"id":"desc-lazyload-container"})
+    descImgSoup = BeautifulSoup(str(descImgTag.getText),"lxml")
+    descImgList = descImgSoup.find_all("img")
+    i = 0
+    for tag in descImgList:
+        imgUrl = tag["src"]
+        print("详情图{}：{}".format(i,imgUrl))
+        downImg(imgUrl,i,"desc")
+        i = i+1
         
+def main():
+    getCoverImg(soup)
+    getDescImg(soup)
 
-descImgTag = soup.find("div",attrs={"id":"desc-lazyload-container"})
-print(descImgTag.p)
+if __name__ == "__main__":
+    main()
+    print("爬取完毕")
+
+
 
 
